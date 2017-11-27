@@ -35,7 +35,7 @@ char **parse_line(char *line)
 	char *token;
 
 	if (!tokens) {
-		fprintf(stderr, "memory allocation issue\n");
+		fprintf(stderr, "Memory allocation error.\n");
 		exit(EXIT_FAILURE);
 	}
 
