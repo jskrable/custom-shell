@@ -19,8 +19,8 @@ char *read_line(void)
 	char *line = NULL;
 	size_t bufsize = 0;
 	ssize_t read = getline(&line, &bufsize, stdin);
-	if (read < 0) {
-		fprintf(stderr, "command read issue\n");
+	if (read <= 0) {
+		fprintf(stderr, "Issue reading command. Did you enter anything?\n");
 		exit(EXIT_FAILURE);
 	}	
 
