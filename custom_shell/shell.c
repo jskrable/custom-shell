@@ -14,6 +14,41 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+/* list of built in commands, maintained manually */
+char *builtin_cmds[] = 
+{
+	"cd",
+	"help",
+	"exit"
+};
+
+/* get count of built in command array */
+int builtin_count = sizeof(*builtin_cmds) / sizeof(builtin_cmds[0]);
+
+/* built in help function */
+int shell_help(char **args)
+{
+	printf("This is Jack Skrable's custom shell\n");
+	printf("Shoot me a command and see what I can do.\n");
+	printf("The following programs are built in:\n");
+
+	int i;
+	for (i=0; i < builtin_count; i++) {
+		printf(" %s\n", builtin_cmds[i]);
+	}
+
+	printf("Please use the standard man command for info \n");
+	printf("on external programs.\n");
+	return 1;
+}
+
+/* built in exit function */
+int shell_exit(char **args)
+{
+	return 0;
+}
+
+/* reads user entered command line */
 char *read_line(void)
 {
 	char *line = NULL;
@@ -27,7 +62,7 @@ char *read_line(void)
 	return line;
 }
 
-
+/* breaks down read_line string into arguments */
 char **parse_line(char *line)
 {
 	int bufsize = TOK_BUFSIZE, position = 0;
@@ -55,18 +90,38 @@ char **parse_line(char *line)
 
 }
 
+int shell_execute(char **args) 
+{
+	int i;
+	
+	if (args[0] == NULL) {
+		return 1;
+	}
 
+	for (i = 0; i < builtin_count; i++) {
+		if (strcmp(args[0], builtin_cmds[i]) == 0) {
+		/* EXECUTE BUILT IN FUNCTIONS HERE */
+		}
+	}
+
+	/* CALL EXTERNAL PROGRAMS HERE */
+	return 0;
+}
+
+/* main loop to read, parse, execute */
 void shell_loop(void)
 {
 	char *line;
 	char **args;
 
-	printf("JS>");
-	line = read_line();
-	printf("You entered: %s", line);
-
-	args = parse_line(line);
-
+	while(1)
+	{
+		printf("JS>");
+		line = read_line();
+		/* printf("You entered: %s", line); */
+		args = parse_line(line);
+		
+	};
 
 
 }
