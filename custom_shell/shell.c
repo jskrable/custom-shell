@@ -58,7 +58,9 @@ int shell_dir(char **args)
 	return 1;
 }
 
-/* built in help function */
+/* built in help function
+	CHANGE TO HARDCODED LIST OF FUNCTIONS AND DESCRIPTIONS
+*/
 int shell_help(char **args)
 {
 	printf("This is Jack Skrable's custom shell\n");
