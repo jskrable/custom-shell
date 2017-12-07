@@ -6,24 +6,58 @@
  */
 
 #define _GNU_SOURCE
-#define TOK_BUFSIZE 128
-#define TOK_DELIM " \t\r\n\a"
+/*#define TOK_BUFSIZE 128
+#define TOK_DELIM " \t\r\n\a" 
+*/
 
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <errno.h>
+#include <sys/wait.h>
 
 /* list of built in commands, maintained manually */
 char *builtin_cmds[] = 
 {
-	"cd",
 	"help",
-	"exit"
+	"exit",
+	"cd",
+	"ls"
 };
 
 /* get count of built in command array */
 int builtin_count = sizeof(*builtin_cmds) / sizeof(builtin_cmds[0]);
+
+/* built in change directory function */
+int shell_cd(char **args)
+{
+	if (args[1] == NULL) {
+		fprintf(stderr, "Expected an argument\n");
+	} else {
+		if (chdir(args[1]) != 0) {
+		/*fprintf(stderr, "Error changing directory\n");*/
+		perror("chdir() error: ");
+		}
+	}
+	return 1;
+}
+
+/* built in list working directory function */
+int shell_ls(char **args)
+{
+	long size;
+	char *buf;
+	char *ptr;
+
+	size = pathconf(".", _PC_PATH_MAX);
+
+	if ((buf = (char *)malloc((size_t)size)) != NULL)
+		ptr = getcwd(buf, (size_t)size);
+		printf("%s\n", ptr);
+	
+	return 1;
+}
 
 /* built in help function */
 int shell_help(char **args)
@@ -33,20 +67,37 @@ int shell_help(char **args)
 	printf("The following programs are built in:\n");
 
 	int i;
-	for (i=0; i < builtin_count; i++) {
+	for (i = 0; i <= builtin_count; i++) {
 		printf(" %s\n", builtin_cmds[i]);
 	}
 
-	printf("Please use the standard man command for info \n");
-	printf("on external programs.\n");
+	printf("Please use the standard man command for\n");
+	printf("info on external programs.\n");
 	return 1;
 }
 
 /* built in exit function */
 int shell_exit(char **args)
 {
-	return 0;
+	exit(0);
 }
+
+/* built in history function 
+
+	ADD HISTORY FUNCTION HERE
+
+
+int shell_history(char **args)
+{
+	struct node
+	{	
+		int data;
+		struct node *next;
+	};
+	
+
+}
+*/
 
 /* reads user entered command line */
 char *read_line(void)
@@ -62,49 +113,112 @@ char *read_line(void)
 	return line;
 }
 
-/* breaks down read_line string into arguments */
+#define LSH_TOK_BUFSIZE 64
+#define LSH_TOK_DELIM " \t\r\n\a"
 char **parse_line(char *line)
 {
-	int bufsize = TOK_BUFSIZE, position = 0;
-	char **tokens = malloc(bufsize * sizeof(char*));
-	char *token;
+  int bufsize = LSH_TOK_BUFSIZE, position = 0;
+  char **tokens = malloc(bufsize * sizeof(char*));
+  char *token;
 
-	if (!tokens) {
-		fprintf(stderr, "Memory allocation error.\n");
+  if (!tokens) {
+    fprintf(stderr, "lsh: allocation error\n");
+    exit(EXIT_FAILURE);
+  }
+
+  token = strtok(line, LSH_TOK_DELIM);
+  while (token != NULL) {
+    tokens[position] = token;
+    position++;
+
+    if (position >= bufsize) {
+      bufsize += LSH_TOK_BUFSIZE;
+      tokens = realloc(tokens, bufsize * sizeof(char*));
+      if (!tokens) {
+        fprintf(stderr, "lsh: allocation error\n");
+        exit(EXIT_FAILURE);
+      }
+    }
+
+    token = strtok(NULL, LSH_TOK_DELIM);
+  }
+  tokens[position] = NULL;
+  return tokens;
+}
+
+/*
+char **parse_line(char *line)
+{
+	char delims[] = " \t\r\n\a";
+	char **commands = malloc(100 * sizeof(char*));
+	int counter = 0;
+	char *place = strtok(line, delims);
+	
+	if (!commands) {
+		fprintf(stderr, "There was an error during memory allocation.\n");
 		exit(EXIT_FAILURE);
 	}
+	
+	while (place != NULL) {
+		commands[counter] = place;
+		counter++;
 
-	token = strtok(line, TOK_DELIM);
-	while (token != NULL) {
-		tokens[position] = token;
-		position++;
+		commands = realloc(commands, sizeof(char*));
 
-		if (position >= bufsize) {
-			bufsize += TOK_BUFSIZE;
+		if (!commands) {
+			fprintf(stderr, "There was an error during memory allocation.\n");
+			exit(EXIT_FAILURE);
 		}
-
-	token = strtok(NULL, TOK_DELIM);
 	}
-	tokens[position] = NULL;
-	return tokens;
 
+	commands[counter] = NULL;
+
+	return commands;
+
+}
+*/
+
+int exec_external(char **args)
+{
+	pid_t pid;
+	int status;
+
+	pid = fork();
+	if (pid == 0) {
+		if (execvp(args[0], args) == -1) {
+			perror("execvp() error: ");
+		}
+		exit(EXIT_FAILURE);
+
+	} else if (pid < 0) {
+		perror("fork() error: ");
+	} else {
+		waitpid(pid, &status, WUNTRACED);
+	}
+
+	return 1;
+		
 }
 
 int shell_execute(char **args) 
 {
-	int i;
-	
+	int builtin;
+
 	if (args[0] == NULL) {
+		printf("Please enter a command next time.\n");
 		return 1;
+	} else if (strcmp(args[0], "exit") == 0) {
+		shell_exit(args);
+	} else if (strcmp(args[0], "help") == 0) {
+		shell_help(args);
+	} else if (strcmp(args[0], "cd") == 0) {
+		shell_cd(args);
+	} else if (strcmp(args[0], "ls") == 0) {
+		shell_ls(args);
+	} else {
+		exec_external(args);
 	}
-
-	for (i = 0; i < builtin_count; i++) {
-		if (strcmp(args[0], builtin_cmds[i]) == 0) {
-		/* EXECUTE BUILT IN FUNCTIONS HERE */
-		}
-	}
-
-	/* CALL EXTERNAL PROGRAMS HERE */
+	
 	return 0;
 }
 
@@ -120,7 +234,8 @@ void shell_loop(void)
 		line = read_line();
 		/* printf("You entered: %s", line); */
 		args = parse_line(line);
-		
+		/* printf("%s\n", (char)args[1]); */
+		shell_execute(args);
 	};
 
 
