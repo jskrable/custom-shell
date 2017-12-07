@@ -23,7 +23,7 @@ char *builtin_cmds[] =
 	"help",
 	"exit",
 	"cd",
-	"ls"
+	"dir"
 };
 
 /* get count of built in command array */
@@ -36,7 +36,6 @@ int shell_cd(char **args)
 		fprintf(stderr, "Expected an argument\n");
 	} else {
 		if (chdir(args[1]) != 0) {
-		/*fprintf(stderr, "Error changing directory\n");*/
 		perror("chdir() error: ");
 		}
 	}
@@ -44,7 +43,7 @@ int shell_cd(char **args)
 }
 
 /* built in list working directory function */
-int shell_ls(char **args)
+int shell_dir(char **args)
 {
 	long size;
 	char *buf;
@@ -83,9 +82,6 @@ int shell_exit(char **args)
 }
 
 /* built in history function 
-
-	ADD HISTORY FUNCTION HERE
-
 
 int shell_history(char **args)
 {
@@ -213,8 +209,8 @@ int shell_execute(char **args)
 		shell_help(args);
 	} else if (strcmp(args[0], "cd") == 0) {
 		shell_cd(args);
-	} else if (strcmp(args[0], "ls") == 0) {
-		shell_ls(args);
+	} else if (strcmp(args[0], "dir") == 0) {
+		shell_dir(args);
 	} else {
 		exec_external(args);
 	}
@@ -232,10 +228,10 @@ void shell_loop(void)
 	{
 		printf("JS>");
 		line = read_line();
-		/* printf("You entered: %s", line); */
 		args = parse_line(line);
 		/* printf("%s\n", (char)args[1]); */
 		shell_execute(args);
+		/* add cmd to history array */
 	};
 
 
