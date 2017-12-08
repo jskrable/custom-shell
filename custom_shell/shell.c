@@ -6,9 +6,6 @@
  */
 
 #define _GNU_SOURCE
-/*#define TOK_BUFSIZE 128
-#define TOK_DELIM " \t\r\n\a" 
-*/
 
 #include <string.h>
 #include <stdio.h>
@@ -17,25 +14,143 @@
 #include <errno.h>
 #include <sys/wait.h>
 
-/* list of built in commands, maintained manually */
-char *builtin_cmds[] = 
+/* intialize data structure for history linked list node */
+struct Node 
 {
-	"help",
-	"exit",
-	"cd",
-	"dir"
+	char *command;
+	int counter;
+	struct Node *next;
 };
 
-/* get count of built in command array */
-int builtin_count = sizeof(*builtin_cmds) / sizeof(builtin_cmds[0]);
+/* initialize head of history list and counter */
+struct Node* head = NULL;
+int hist_cnt = 0;
+
+/* forward function declarations */
+
+void shell_loop(void);
+int shell_execute(char **args, char *line);
+int exec_external(char **args);
+char **parse_line(char *line);
+char *read_line(void);
+int shell_dir(char **args);
+int shell_cd(char **args);
+int shell_cd(char **args);
+int shell_help(char **args);
+int execute_last(struct Node *node);
+int history_execute(char *line);
+int history_print(struct Node *node);
+int history_commit(struct Node** head_ref, char *line, int hist_cnt);
+
+
+/* built in help function */
+int shell_help(char **args)
+{
+	printf("Welcome to Jack Skrable's custom shell\n");
+	printf("--------------------------------------------------------------------\n");
+	printf("Shoot me a command and see what I can do. These commands are built in:\n");
+	printf("\n");
+	printf("\"help\" brings up this display.\n");
+	printf("\"cd\" changes directories. Be sure to pass in the full path as an argument.\n");
+	printf("\"dir\" lists the current directory.\n");
+	printf("\"history\" shows the command history\n");
+	printf("\"!!\" executes the last entered command.\n");
+	printf("\"!n\" executes the n-th command.\n");
+	printf("\"exit\" seems self-explnatory, this one does.\n");
+	printf("\n");
+	printf("Please use the standard man command for info on external commands\n");
+	return 1;
+}
+
+/* commit a line to history data structure */
+int history_commit(struct Node** head_ref, char *line, int hist_cnt)
+{
+	/* create new node and allocate mem */
+	struct Node* new_node = (struct Node*)malloc(sizeof(struct Node));
+
+	struct Node *last = *head_ref;
+
+	/* add command input and counter to node */
+	new_node->command = line;
+	new_node->counter = hist_cnt;
+	new_node->next = NULL;
+
+	/* set node to head if first one */
+	if (*head_ref == NULL) {
+		*head_ref = new_node;
+		return 1;
+	}
+	
+	/* get to end of list */
+	while (last->next != NULL) {
+		last = last->next;
+	}
+
+	last->next = new_node;
+	
+	hist_cnt++;
+	return hist_cnt;
+}
+
+/* print out full command history for session */
+int history_print(struct Node *node)
+{
+	while (node != NULL) {
+		printf(" %d | %s \n", node->counter, node->command);
+		node = node->next;
+	}
+
+	return 1;
+}
+
+/* execute the last command entered from history */
+int execute_last(struct Node *node)
+{
+	/*char* last_command;*/
+
+	if (node == NULL) {
+		printf("There is no last command to execute.\n");
+	}
+
+	/* traverse to final node */	
+	while (node->next != NULL) {
+		node = node->next;
+	}
+
+	/* send final command to history_execute function */
+	history_execute(node->command); 
+	return 1;
+}
+
+/* execute the nth command entered from history */
+int execute_nth(struct Node *node, char *line)
+{
+	int n = line[1];
+	/*while(*line) {
+		if (*line-- == "!") {
+			n = atol(line);
+		}
+	}*/
+	printf("The %d command\n", n);		
+
+	/*while (node != NULL) {
+		if(n == node->counter) {
+			printf("The nth command was %s\n", node->command);
+		}
+	}*/
+		
+	return 1;	
+}
+
 
 /* built in change directory function */
 int shell_cd(char **args)
 {
 	if (args[1] == NULL) {
-		fprintf(stderr, "Expected an argument\n");
+		fprintf(stderr, "Please include path to change into as argument.\n");
 	} else {
 		if (chdir(args[1]) != 0) {
+		/*fprintf(stderr, "Error changing directory\n");*/
 		perror("chdir() error: ");
 		}
 	}
@@ -58,44 +173,11 @@ int shell_dir(char **args)
 	return 1;
 }
 
-/* built in help function
-	CHANGE TO HARDCODED LIST OF FUNCTIONS AND DESCRIPTIONS
-*/
-int shell_help(char **args)
-{
-	printf("This is Jack Skrable's custom shell\n");
-	printf("Shoot me a command and see what I can do.\n");
-	printf("The following programs are built in:\n");
-
-	int i;
-	for (i = 0; i <= builtin_count; i++) {
-		printf(" %s\n", builtin_cmds[i]);
-	}
-
-	printf("Please use the standard man command for\n");
-	printf("info on external programs.\n");
-	return 1;
-}
-
 /* built in exit function */
 int shell_exit(char **args)
 {
 	exit(0);
 }
-
-/* built in history function 
-
-int shell_history(char **args)
-{
-	struct node
-	{	
-		int data;
-		struct node *next;
-	};
-	
-
-}
-*/
 
 /* reads user entered command line */
 char *read_line(void)
@@ -198,9 +280,8 @@ int exec_external(char **args)
 		
 }
 
-int shell_execute(char **args) 
+int shell_execute(char **args, char *line) 
 {
-	int builtin;
 
 	if (args[0] == NULL) {
 		printf("Please enter a command next time.\n");
@@ -213,11 +294,28 @@ int shell_execute(char **args)
 		shell_cd(args);
 	} else if (strcmp(args[0], "dir") == 0) {
 		shell_dir(args);
+	} else if (strcmp(args[0], "history") == 0) {
+		history_print(head);
+	} else if (strcmp(args[0], "!!") == 0) {
+		execute_last(head);
+	} else if (strncmp(args[0], "!", 1) == 0) {
+		execute_nth(head, line);
 	} else {
 		exec_external(args);
 	}
 	
 	return 0;
+}
+
+/* bypass read line and pass historical command into execute */
+int history_execute(char *line)
+{
+	char **args;
+
+	args = parse_line(line);
+	shell_execute(args, line);
+
+	return 1;
 }
 
 /* main loop to read, parse, execute */
@@ -230,10 +328,11 @@ void shell_loop(void)
 	{
 		printf("JS>");
 		line = read_line();
+		/*printf("Line: %s\n", line);*/
 		args = parse_line(line);
-		/* printf("%s\n", (char)args[1]); */
-		shell_execute(args);
-		/* add cmd to history array */
+		/*printf("The first arg is: %s\n", (char)args[1]);*/
+		shell_execute(args, line);
+		hist_cnt = history_commit(&head, line, hist_cnt);
 	};
 
 
