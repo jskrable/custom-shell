@@ -76,13 +76,15 @@ int history_commit(struct Node** head_ref, char *line, int hist_cnt)
 	new_node->next = NULL;
 
 	/* set node to head if first one */
-	if (*head_ref == NULL) {
+	if (*head_ref == NULL)
+	{
 		*head_ref = new_node;
 		return 1;
 	}
 	
 	/* get to end of list */
-	while (last->next != NULL) {
+	while (last->next != NULL) 
+	{
 		last = last->next;
 	}
 
@@ -95,7 +97,8 @@ int history_commit(struct Node** head_ref, char *line, int hist_cnt)
 /* print out full command history for session */
 int history_print(struct Node *node)
 {
-	while (node != NULL) {
+	while (node != NULL) 
+	{
 		printf(" %d | %s \n", node->counter, node->command);
 		node = node->next;
 	}
@@ -106,14 +109,14 @@ int history_print(struct Node *node)
 /* execute the last command entered from history */
 int execute_last(struct Node *node)
 {
-	/*char* last_command;*/
-
-	if (node == NULL) {
+	if (node == NULL) 
+	{
 		printf("There is no last command to execute.\n");
 	}
 
 	/* traverse to final node */	
-	while (node->next != NULL) {
+	while (node->next != NULL) 
+	{
 		node = node->next;
 	}
 
@@ -127,14 +130,17 @@ int execute_nth(struct Node *node, char *line)
 {
 	int n = line[1];
 	/*while(*line) {
-		if (*line-- == "!") {
+		if (*line-- == "!") 
+		{
 			n = atol(line);
 		}
 	}*/
 	printf("The %d command\n", n);		
 
-	/*while (node != NULL) {
-		if(n == node->counter) {
+	/*while (node != NULL) 
+	{
+		if(n == node->counter) 
+		{
 			printf("The nth command was %s\n", node->command);
 		}
 	}*/
@@ -146,10 +152,13 @@ int execute_nth(struct Node *node, char *line)
 /* built in change directory function */
 int shell_cd(char **args)
 {
-	if (args[1] == NULL) {
+	if (args[1] == NULL) 
+	{
 		fprintf(stderr, "Please include path to change into as argument.\n");
-	} else {
-		if (chdir(args[1]) != 0) {
+	} else 
+	{
+		if (chdir(args[1]) != 0) 
+		{
 		/*fprintf(stderr, "Error changing directory\n");*/
 		perror("chdir() error: ");
 		}
@@ -185,7 +194,8 @@ char *read_line(void)
 	char *line = NULL;
 	size_t bufsize = 0;
 	ssize_t read = getline(&line, &bufsize, stdin);
-	if (read <= 0) {
+	if (read <= 0) 
+	{
 		fprintf(stderr, "Issue reading command. Did you enter anything?\n");
 		exit(EXIT_FAILURE);
 	}	
@@ -201,20 +211,24 @@ char **parse_line(char *line)
   char **tokens = malloc(bufsize * sizeof(char*));
   char *token;
 
-  if (!tokens) {
+  if (!tokens) 
+  {
     fprintf(stderr, "lsh: allocation error\n");
     exit(EXIT_FAILURE);
   }
 
   token = strtok(line, LSH_TOK_DELIM);
-  while (token != NULL) {
+  while (token != NULL) 
+  {
     tokens[position] = token;
     position++;
 
-    if (position >= bufsize) {
+    if (position >= bufsize) 
+	{
       bufsize += LSH_TOK_BUFSIZE;
       tokens = realloc(tokens, bufsize * sizeof(char*));
-      if (!tokens) {
+      if (!tokens) 
+	  {
         fprintf(stderr, "lsh: allocation error\n");
         exit(EXIT_FAILURE);
       }
@@ -264,13 +278,16 @@ int exec_external(char **args)
 	int status;
 
 	pid = fork();
-	if (pid == 0) {
-		if (execvp(args[0], args) == -1) {
+	if (pid == 0) 
+	{
+		if (execvp(args[0], args) == -1) 
+		{
 			perror("execvp() error: ");
 		}
 		exit(EXIT_FAILURE);
 
-	} else if (pid < 0) {
+	} else if (pid < 0) 
+	{
 		perror("fork() error: ");
 	} else {
 		waitpid(pid, &status, WUNTRACED);
@@ -283,24 +300,33 @@ int exec_external(char **args)
 int shell_execute(char **args, char *line) 
 {
 
-	if (args[0] == NULL) {
+	if (args[0] == NULL) 
+	{
 		printf("Please enter a command next time.\n");
 		return 1;
-	} else if (strcmp(args[0], "exit") == 0) {
+	} else if (strcmp(args[0], "exit") == 0) 
+	{
 		shell_exit(args);
-	} else if (strcmp(args[0], "help") == 0) {
+	} else if (strcmp(args[0], "help") == 0) 
+	{
 		shell_help(args);
-	} else if (strcmp(args[0], "cd") == 0) {
+	} else if (strcmp(args[0], "cd") == 0) 
+	{
 		shell_cd(args);
-	} else if (strcmp(args[0], "dir") == 0) {
+	} else if (strcmp(args[0], "dir") == 0) 
+	{
 		shell_dir(args);
-	} else if (strcmp(args[0], "history") == 0) {
+	} else if (strcmp(args[0], "history") == 0) 
+	{
 		history_print(head);
-	} else if (strcmp(args[0], "!!") == 0) {
+	} else if (strcmp(args[0], "!!") == 0) 
+	{
 		execute_last(head);
-	} else if (strncmp(args[0], "!", 1) == 0) {
+	} else if (strncmp(args[0], "!", 1) == 0) 
+	{
 		execute_nth(head, line);
-	} else {
+	} else 
+	{
 		exec_external(args);
 	}
 	
@@ -340,11 +366,8 @@ void shell_loop(void)
 
 int main (int argc, char **argv) 
 {
-
 	shell_loop();
-
-	return EXIT_SUCCESS;
-			
+	return EXIT_SUCCESS;			
 }
 
 
