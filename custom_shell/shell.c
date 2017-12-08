@@ -133,15 +133,20 @@ int execute_last(struct Node *node)
 /* execute the nth command entered from history */
 int execute_nth(struct Node *node, char *line)
 {
-	int n = line[1];
-	/*while(*line) {
-		if (*line-- == "!") 
+	char *str = line, *p = str;
+	long n;
+	
+	/* loop through line and grab long int */
+    	while (*p) {
+        	if (isdigit(*p)) 
 		{
-			n = atol(line);
-		}
-	}*/
-	printf("The %d command\n", n);		
-
+            		n = strtol(p, &p, 10);
+            		printf("The command number is %ld\n", n);
+        	} else 
+		{
+            		p++;
+        	}
+    	}
 	/*while (node != NULL) 
 	{
 		if(n == node->counter) 
