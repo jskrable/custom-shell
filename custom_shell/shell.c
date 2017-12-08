@@ -1,9 +1,11 @@
 /* 
- * Jack Skrable
- * Custom Shell 
- * CS 575
- * 10/31/17
- */
+	author: Jack Skrable
+	project: custom_shell
+	description: Custom shell built for unix-based systems as final project
+	for CS 575 Operating Sys Concepts @ BU.
+	version: 2.0
+	date: 12/08/17
+*/
 
 #define _GNU_SOURCE
 
@@ -26,7 +28,10 @@ struct Node
 struct Node* head = NULL;
 int hist_cnt = 0;
 
-/* forward function declarations */
+/* 
+	forward function declarations 
+	DROP THE DECLARATIONS THAT ARE NOT NEEDED FOR CLEANLINESS
+*/
 
 void shell_loop(void);
 int shell_execute(char **args, char *line);
@@ -43,7 +48,7 @@ int history_print(struct Node *node);
 int history_commit(struct Node** head_ref, char *line, int hist_cnt);
 
 
-/* built in help function */
+/* built in help function, updated manually w/ descriptions */
 int shell_help(char **args)
 {
 	printf("Welcome to Jack Skrable's custom shell\n");
@@ -62,7 +67,7 @@ int shell_help(char **args)
 	return 1;
 }
 
-/* commit a line to history data structure */
+/* add a command to history data structure */
 int history_commit(struct Node** head_ref, char *line, int hist_cnt)
 {
 	/* create new node and allocate mem */
@@ -203,6 +208,7 @@ char *read_line(void)
 	return line;
 }
 
+/* SNAGGED PARSE LINE FUNCTION TO DROP */
 #define LSH_TOK_BUFSIZE 64
 #define LSH_TOK_DELIM " \t\r\n\a"
 char **parse_line(char *line)
@@ -241,6 +247,8 @@ char **parse_line(char *line)
 }
 
 /*
+*********** CUSTOM PARSE_LINE FUNCTION TO FIX **************
+
 char **parse_line(char *line)
 {
 	char delims[] = " \t\r\n\a";
@@ -272,6 +280,9 @@ char **parse_line(char *line)
 }
 */
 
+/* executes all external commands 
+	ANNOTATE AND CHANGE???
+*/
 int exec_external(char **args)
 {
 	pid_t pid;
@@ -297,6 +308,7 @@ int exec_external(char **args)
 		
 }
 
+/* conditional to check for built-in commands, or send to external execution */
 int shell_execute(char **args, char *line) 
 {
 
