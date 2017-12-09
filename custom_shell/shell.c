@@ -15,6 +15,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/wait.h>
+#include <ctype.h>
 
 /* intialize data structure for history linked list node */
 struct Node 
@@ -26,27 +27,10 @@ struct Node
 
 /* initialize head of history list and counter */
 struct Node* head = NULL;
-int hist_cnt = 0;
+int hist_cnt = 1;
 
-/* 
-	forward function declarations 
-	DROP THE DECLARATIONS THAT ARE NOT NEEDED FOR CLEANLINESS
-*/
-
-void shell_loop(void);
-int shell_execute(char **args, char *line);
-int exec_external(char **args);
-char **parse_line(char *line);
-char *read_line(void);
-int shell_dir(char **args);
-int shell_cd(char **args);
-int shell_cd(char **args);
-int shell_help(char **args);
-int execute_last(struct Node *node);
+/* forward function declarations */
 int history_execute(char *line);
-int history_print(struct Node *node);
-int history_commit(struct Node** head_ref, char *line, int hist_cnt);
-
 
 /* built in help function, updated manually w/ descriptions */
 int shell_help(char **args)
@@ -102,6 +86,11 @@ int history_commit(struct Node** head_ref, char *line, int hist_cnt)
 /* print out full command history for session */
 int history_print(struct Node *node)
 {
+	if (node == NULL)
+	{
+		printf("There is no history yet. Try something.\n");
+	}
+	
 	while (node != NULL) 
 	{
 		printf(" %d | %s \n", node->counter, node->command);
@@ -134,27 +123,38 @@ int execute_last(struct Node *node)
 int execute_nth(struct Node *node, char *line)
 {
 	char *str = line, *p = str;
+	char *command;
 	long n;
 	
 	/* loop through line and grab long int */
-    	while (*p) {
-        	if (isdigit(*p)) 
+	while (*p) {
+    	if (isdigit(*p)) 
 		{
-            		n = strtol(p, &p, 10);
-            		printf("The command number is %ld\n", n);
-        	} else 
+        		n = strtol(p, &p, 10);
+    	} else 
 		{
-            		p++;
-        	}
+        		p++;
     	}
-	/*while (node != NULL) 
+	}
+	
+	/* run through linked list and check if n matches a command number */
+	while (node != NULL) 
 	{
 		if(n == node->counter) 
 		{
-			printf("The nth command was %s\n", node->command);
+			command = node->command;
 		}
-	}*/
-		
+		node = node->next;
+	}
+
+	/* display error if n does not exist in history, otherwise execute */	
+	if (command == NULL) 
+	{
+		printf("There is no command at location: %ld \n", n);
+	} else
+	{
+		history_execute(command);
+	}
 	return 1;	
 }
 
@@ -371,11 +371,11 @@ void shell_loop(void)
 	{
 		printf("JS>");
 		line = read_line();
-		/*printf("Line: %s\n", line);*/
 		args = parse_line(line);
-		/*printf("The first arg is: %s\n", (char)args[1]);*/
-		shell_execute(args, line);
-		hist_cnt = history_commit(&head, line, hist_cnt);
+		if (shell_execute(args, line) == 0)
+		{
+			hist_cnt = history_commit(&head, line, hist_cnt);
+		}
 	};
 
 
@@ -386,6 +386,7 @@ int main (int argc, char **argv)
 	shell_loop();
 	return EXIT_SUCCESS;			
 }
+
 
 
 
