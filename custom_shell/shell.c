@@ -27,7 +27,7 @@ struct Node
 
 /* initialize head of history list and counter */
 struct Node* head = NULL;
-int hist_cnt = 1;
+int hist_cnt = 0;
 
 /* forward function declarations */
 int history_execute(char *line);
@@ -213,77 +213,50 @@ char *read_line(void)
 	return line;
 }
 
-/* SNAGGED PARSE LINE FUNCTION TO DROP */
-#define LSH_TOK_BUFSIZE 64
-#define LSH_TOK_DELIM " \t\r\n\a"
+/************ CUSTOM PARSE_LINE FUNCTION TO FIX **************/
 char **parse_line(char *line)
 {
-  int bufsize = LSH_TOK_BUFSIZE, position = 0;
-  char **tokens = malloc(bufsize * sizeof(char*));
-  char *token;
-
-  if (!tokens) 
-  {
-    fprintf(stderr, "lsh: allocation error\n");
-    exit(EXIT_FAILURE);
-  }
-
-  token = strtok(line, LSH_TOK_DELIM);
-  while (token != NULL) 
-  {
-    tokens[position] = token;
-    position++;
-
-    if (position >= bufsize) 
-	{
-      bufsize += LSH_TOK_BUFSIZE;
-      tokens = realloc(tokens, bufsize * sizeof(char*));
-      if (!tokens) 
-	  {
-        fprintf(stderr, "lsh: allocation error\n");
-        exit(EXIT_FAILURE);
-      }
-    }
-
-    token = strtok(NULL, LSH_TOK_DELIM);
-  }
-  tokens[position] = NULL;
-  return tokens;
-}
-
-/*
-*********** CUSTOM PARSE_LINE FUNCTION TO FIX **************
-
-char **parse_line(char *line)
-{
-	char delims[] = " \t\r\n\a";
-	char **commands = malloc(100 * sizeof(char*));
-	int counter = 0;
-	char *place = strtok(line, delims);
+	const char *delims = " \t\r\n\a";
+	const int buf_inc = 64;
+	int position = 0, bufsize = buf_inc;
+	char **tokens = malloc(bufsize * sizeof(char*));
+	char *token;
 	
-	if (!commands) {
-		fprintf(stderr, "There was an error during memory allocation.\n");
+	/* check memory allocation */
+	if (!tokens) {
+		perror("Memory allocation error: \n");
 		exit(EXIT_FAILURE);
 	}
-	
-	while (place != NULL) {
-		commands[counter] = place;
-		counter++;
 
-		commands = realloc(commands, sizeof(char*));
-
-		if (!commands) {
-			fprintf(stderr, "There was an error during memory allocation.\n");
-			exit(EXIT_FAILURE);
+	/* parse out the first token */
+	token = strtok(line, delims);
+	while (token != NULL)
+	{
+		tokens[position] = token;
+		position++;
+		
+		/* check if buffer needs to be incremented */
+		if (position >= bufsize)
+		{
+			bufsize += buf_inc;
+			tokens = realloc(tokens, bufsize * sizeof(char*));
+			
+			if (!tokens)
+			{
+				perror("Memory allocation error: \n");
+				exit(EXIT_FAILURE);
+			}
 		}
+		
+		/* go to next token */
+		token = strtok(NULL, delims);
 	}
 
-	commands[counter] = NULL;
-
-	return commands;
-
+	/* end with a null and return the array of args */
+	tokens[position] = NULL;
+	return tokens;
 }
-*/
+
 
 /* executes all external commands 
 	ANNOTATE AND CHANGE???
@@ -293,7 +266,10 @@ int exec_external(char **args)
 	pid_t pid;
 	int status;
 
+	/* create child process */
 	pid = fork();
+
+	/* execute child and wait for return to parent*/
 	if (pid == 0) 
 	{
 		if (execvp(args[0], args) == -1) 
@@ -372,7 +348,10 @@ void shell_loop(void)
 		printf("JS>");
 		line = read_line();
 		args = parse_line(line);
-		if (shell_execute(args, line) == 0)
+		if ((strcmp(args[0], "!!") == 0) || (strncmp(args[0], "!", 1) == 0))
+		{
+			shell_execute(args, line);
+		} else if (shell_execute(args, line) == 0)
 		{
 			hist_cnt = history_commit(&head, line, hist_cnt);
 		}
